@@ -1,0 +1,90 @@
+version: '3'
+
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    networks:
+      - red-internet
+  
+  letsencrypt-companion:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: letsencrypt-companion
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certs:/etc/nginx/certs
+      - ./vhost.d:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx-proxy  
+    depends_on:
+      - nginx-proxy
+    networks:
+      - red-internet
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    environment:
+      #- VIRTUAL_HOST=portainer.mcarmen.2daw 
+      - VIRTUAL_PORT=9000
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - red-internet
+      - red-interna
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: always
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - red-interna
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: always
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      #- VIRTUAL_HOST=grafana.mcarmen.2daw 
+      - VIRTUAL_PORT=3000
+    ports:
+      - "3000:3000"
+    networks:
+      - red-internet
+      - red-interna
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: always
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - red-interna
+
+networks:
+  red-internet:
+    external: true
+  red-interna:
+    external: true
+
+volumes:
+  portainer_data:
+  prometheus_data:
+  grafana_data:
