@@ -1,0 +1,124 @@
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./vhost.d:/etc/nginx/vhost.d:ro
+      - ./html:/usr/share/nginx/html:ro
+    networks:
+      - red-internet
+
+  letsencrypt-companion:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: letsencrypt-companion
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certs:/etc/nginx/certs
+      - ./vhost.d:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+    depends_on:
+      - nginx-proxy
+    networks:
+      - red-internet
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    environment:
+      - VIRTUAL_HOST=portainer.mcarmen.servidorgp.somosdelprieto.com
+      - VIRTUAL_PORT=9000
+      - LETSENCRYPT_HOST=portainer.mcarmen.servidorgp.somosdelprieto.com
+      - LETSENCRYPT_EMAIL=carmengarcianavarro19@gmail.com
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - red-internet
+      - red-interna
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: always
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - red-interna
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: always
+    environment:
+      - VIRTUAL_HOST=grafana.mcarmen.servidorgp.somosdelprieto.com
+      - VIRTUAL_PORT=3000
+      - LETSENCRYPT_HOST=grafana.mcarmen.servidorgp.somosdelprieto.com
+      - LETSENCRYPT_EMAIL=carmengarcianavarro19@gmail.com
+    networks:
+      - red-internet
+      - red-interna
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: always
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - red-interna
+
+  mi-app:
+    build: .
+    image: mcarmen96/despliegue_servidor:latest
+    container_name: servidor-web
+    environment:
+      - VIRTUAL_HOST=mcarmen.servidorgp.somosdelprieto.com
+      - LETSENCRYPT_HOST=mcarmen.servidorgp.somosdelprieto.com
+      - LETSENCRYPT_EMAIL=carmengarcianavarro19@gmail.com
+    networks:
+      - red-internet
+  db-prieto:
+    image: postgres:15
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_DB: prieto_eats
+      POSTGRES_USER: m_carmen
+      POSTGRES_PASSWORD: prieto_eats_mcarmen
+    volumes:
+      - ./datos_db/postgres_prieto:/var/lib/postgresql/data
+    networks:
+      - red-interna
+
+  prieto-eats:
+    build:
+      context: ./apps/prieto_eats
+    container_name: laravel-app
+    restart: always
+    environment:
+      - VIRTUAL_HOST=prietoeats.mcarmen.servidorgp.somosdelprieto.com
+      - LETSENCRYPT_HOST=prietoeats.mcarmen.servidorgp.somosdelprieto.com
+      - LETSENCRYPT_EMAIL=carmengarcianavarro19@gmail.com
+    networks:
+      - red-internet
+      - red-interna
+    depends_on:
+      - db-prieto
+networks:
+  red-internet:
+    external: true
+  red-interna:
+    external: true
+
+volumes:
+  portainer_data:
