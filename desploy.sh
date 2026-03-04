@@ -9,10 +9,10 @@ echo "📥 Actualizando código desde GitHub..."
 git pull origin main
 
 echo "🐳 Descargando última imagen de Docker Hub..."
-docker pull MCarmen96/despliegue_servidor:latest
+docker pull mcarmen96/despliegue_servidor:latest
 
 echo "🚀 Reiniciando servicios con Docker Compose..."
-docker-compose up -d --remove-orphans
+docker compose up -d --remove-orphans
 
 echo "✅ ¡Todo listo! Estado de los contenedores:"
 docker ps
