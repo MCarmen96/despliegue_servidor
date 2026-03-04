@@ -12,9 +12,9 @@ COPY . .
 RUN npm run build
 
 # ============================================================
-# STAGE 2 — PHP 8.2 + Apache (imagen final de producción)
+# STAGE 2 — PHP 8.4 + Apache (imagen final de producción)
 # ============================================================
-FROM php:8.2-apache
+FROM php:8.4-apache
 
 # Habilitar mod_rewrite (necesario para las rutas de Laravel)
 RUN a2enmod rewrite
