@@ -1,0 +1,24 @@
+# Dependencias (se instalan en el build de Docker)
+/vendor/
+/node_modules/
+
+# Assets compilados (se generan en el build de Docker)
+/public/build/
+/public/hot/
+
+# Archivos de entorno (¡NUNCA subir a git en proyectos reales!)
+# En este entorno educativo se sube para poder desplegar sin gestión de secretos
+# /.env
+
+# Logs y caché generados en runtime
+/storage/logs/*.log
+/bootstrap/cache/*.php
+
+# Archivos de pruebas locales
+.phpunit.result.cache
+phpunit.xml
+
+# IDE
+.idea/
+.vscode/
+*.swp
