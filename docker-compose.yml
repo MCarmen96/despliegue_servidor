@@ -81,16 +81,6 @@ services:
     networks:
       - red-interna
 
-  mi-app:
-    build: .
-    image: mcarmen96/despliegue_servidor:latest
-    container_name: servidor-web
-    environment:
-      - VIRTUAL_HOST=mcarmen.servidorgp.somosdelprieto.com
-      - LETSENCRYPT_HOST=mcarmen.servidorgp.somosdelprieto.com
-      - LETSENCRYPT_EMAIL=carmengarcianavarro19@gmail.com
-    networks:
-      - red-internet
   db-prieto:
     image: postgres:15
     container_name: postgres-db
