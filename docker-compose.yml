@@ -117,6 +117,8 @@ services:
       dockerfile: Dockerfile
     container_name: laravel-app
     restart: always
+    env_file:
+      - ./apps/prieto_eats/.env
     environment:
       - VIRTUAL_HOST=prietoeats.mcarmen.servidorgp.somosdelprieto.com
       - VIRTUAL_PORT=80
