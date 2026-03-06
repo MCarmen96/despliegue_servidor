@@ -98,7 +98,7 @@ class AdminControllerOffers extends Controller
     {
         //
         try{
-            $offer=Offer::find($id);
+            $offer=Offer::findOrFail($id);
             $dishes = Product::all();
             return view("admin.offers.edit", compact ("offer","dishes") );
         }catch(\Exception $e){
@@ -111,7 +111,31 @@ class AdminControllerOffers extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $validated=$request->validate([
+            'date_delivery'=>'required|date_format:Y-m-d|after:today',
+            'time_delivery'=>'required|string|max:255',
+            'dish_selected'=>'required|array|min:1',
+            'dish_selected.*'=>'integer|distinct|exists:products,id'
+        ]);
+
+        try{
+            $offer=Offer::findOrFail($id);
+            $offer->update([
+                'date_delivery'=>$validated['date_delivery'],
+                'time_delivery'=>$validated['time_delivery']
+            ]);
+
+            // Borrar productos antiguos y añadir los nuevos
+            $offer->productsOffer()->delete();
+            $rows = collect($validated['dish_selected'])->map(fn($productId) => [
+                'product_id' => $productId,
+            ])->values()->all();
+            $offer->productsOffer()->createMany($rows);
+
+            return redirect()->route('admin.offers.index')->with('success','Oferta actualizada');
+        }catch(\Exception $e){
+            return back()->withErrors(['error' => 'Fallo al actualizar oferta: ' . $e->getMessage()]);
+        }
     }
 
     /**

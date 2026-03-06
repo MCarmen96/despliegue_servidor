@@ -59,8 +59,7 @@ class AdminControllerProducts extends Controller{
             return redirect()->route("admin.products.index")->with("success","Producto creado con exito");
 
         }catch(\Exception $e){
-            error_log($e->getMessage());
-
+            return back()->with('error', 'Error al crear producto: ' . $e->getMessage());
         }
 
 

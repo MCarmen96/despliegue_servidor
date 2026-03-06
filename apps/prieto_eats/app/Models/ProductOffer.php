@@ -21,6 +21,6 @@ class ProductOffer extends Model
     }
 
     public function productsOrder(){
-        return $this->hasMany(ProductOrder::class);
+        return $this->hasMany(ProductOrder::class, 'product_id');
     }
 }

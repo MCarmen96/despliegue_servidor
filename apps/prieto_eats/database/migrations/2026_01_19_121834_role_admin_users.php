@@ -24,7 +24,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             //
-            $table->dropColum('is_admin');
+            $table->dropColumn('is_admin');
         });
     }
 };
