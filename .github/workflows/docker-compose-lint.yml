@@ -1,0 +1,43 @@
+name: Validar Docker Compose
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'docker-compose.yml'
+      - 'apps/**/Dockerfile'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'docker-compose.yml'
+      - 'apps/**/Dockerfile'
+
+jobs:
+  validate-compose:
+    name: Validar docker-compose.yml
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Validar sintaxis de docker-compose.yml
+        run: docker compose config --quiet
+
+  lint-dockerfiles:
+    name: Lint Dockerfiles con Hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Buscar Dockerfiles
+        id: find
+        run: |
+          files=$(find . -name 'Dockerfile' -type f | tr '\n' ',')
+          echo "dockerfiles=$files" >> "$GITHUB_OUTPUT"
+
+      - name: Lint con Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ./apps/prieto_eats/Dockerfile
+          failure-threshold: warning
