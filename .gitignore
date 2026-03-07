@@ -1,3 +1,4 @@
 certs/
 datos_db/
 .env
+bbdd_prieto_eats.sql
