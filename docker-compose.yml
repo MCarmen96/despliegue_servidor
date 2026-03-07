@@ -96,39 +96,6 @@ services:
       - red-internet
       - red-interna
 
-  # --- BASE DE DATOS ---
-  db-prieto:
-    image: postgres:15
-    container_name: postgres-db
-    restart: always
-    environment:
-      POSTGRES_DB: prieto_eats
-      POSTGRES_USER: m_carmen
-      POSTGRES_PASSWORD: prieto_eats_mcarmen
-    volumes:
-      - ./datos_db/postgres_prieto:/var/lib/postgresql/data
-    networks:
-      - red-interna
-
-  # --- APLICACIÓN ---
-  prieto-eats:
-    build:
-      context: ./apps/prieto_eats
-      dockerfile: Dockerfile
-    container_name: laravel-app
-    restart: always
-    env_file:
-      - ./apps/prieto_eats/.env
-    environment:
-      - VIRTUAL_HOST=prietoeats.mcarmen.servidorgp.somosdelprieto.com
-      - VIRTUAL_PORT=80
-      - LETSENCRYPT_HOST=prietoeats.mcarmen.servidorgp.somosdelprieto.com
-    networks:
-      - red-internet
-      - red-interna
-    depends_on:
-      - db-prieto
-
 networks:
   red-internet:
     external: true

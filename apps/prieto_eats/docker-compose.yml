@@ -1,16 +1,42 @@
 services:
+  # --- BASE DE DATOS ---
   db:
-    image: postgres:17-alpine
-    container_name: proyecto05breeze
-
+    image: postgres:15
+    container_name: ${APP_NAME:-mi-app}-db
+    restart: always
     environment:
-      POSTGRES_DB: proyecto05breeze
-      POSTGRES_USER: admin123
-      POSTGRES_PASSWORD: admin123
-    ports:
-      - "5433:5432"
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - red-interna
+
+  # --- APLICACIÓN ---
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ${APP_NAME:-mi-app}
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
+      - VIRTUAL_PORT=80
+      - LETSENCRYPT_HOST=${VIRTUAL_HOST}
+    networks:
+      - red-internet
+      - red-interna
+    depends_on:
+      - db
+
+networks:
+  red-internet:
+    external: true
+  red-interna:
+    external: true
 
 volumes:
-  postgres_data:
+  db_data:
