@@ -6,9 +6,9 @@ services:
     container_name: amazonapi
     restart: unless-stopped
     environment:
-      VIRTUAL_HOST: appprueba.servidorgp.somosdelprieto.com
+      VIRTUAL_HOST: appprueba.mcarmen.servidorgp.somosdelprieto.com
       VIRTUAL_PORT: "8080"
-      # LETSENCRYPT_HOST: appprueba.servidorgp.somosdelprieto.com  # SSL desactivado temporalmente
+      # LETSENCRYPT_HOST: appprueba.mcarmen.servidorgp.somosdelprieto.com  # SSL desactivado temporalmente
 
       # H2 persistente dentro del contenedor: /data se guarda en el volumen amazonapi_data.
       SPRING_DATASOURCE_URL: jdbc:h2:file:/data/amazonapi.db
