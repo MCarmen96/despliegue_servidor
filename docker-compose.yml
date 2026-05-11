@@ -1,112 +1,202 @@
+# Servicio raíz de Docker Compose.
 services:
   # --- PROXY INVERSO ---
+  # Este contenedor recibe TODO el tráfico HTTP/HTTPS del servidor.
   nginx-proxy:
+    # Imagen que detecta contenedores con VIRTUAL_HOST y genera configuración Nginx automáticamente.
     image: jwilder/nginx-proxy
+    # Nombre fijo del contenedor para poder referenciarlo desde otros servicios.
     container_name: nginx-proxy
+    # Publica puertos del host (izquierda) hacia el contenedor (derecha).
     ports:
+      # HTTP público.
       - "80:80"
+      # HTTPS público.
       - "443:443"
+    # Volúmenes para certificados, configuraciones virtual-host y acceso al socket Docker.
     volumes:
+      # Socket Docker en solo lectura: permite descubrir contenedores dinámicamente.
       - /var/run/docker.sock:/tmp/docker.sock:ro
+      # Certificados TLS generados por Let's Encrypt.
       - certs:/etc/nginx/certs:ro
+      # Plantillas/config de virtual hosts.
       - vhost:/etc/nginx/vhost.d
+      # Carpeta usada por el companion para desafíos ACME.
       - html:/usr/share/nginx/html
+    # Red pública donde viven los servicios expuestos a Internet.
     networks:
       - red-internet
+    # Reinicia siempre ante caída o reinicio del host.
     restart: always
 
   # --- SSL AUTOMÁTICO ---
+  # Este servicio solicita y renueva certificados Let's Encrypt para dominios detectados.
   letsencrypt-companion:
+    # Companion oficial para jwilder/nginx-proxy.
     image: jrcs/letsencrypt-nginx-proxy-companion
+    # Nombre fijo para facilitar administración y logs.
     container_name: letsencrypt-companion
+    # Variables de entorno necesarias para asociar companion con nginx-proxy.
     environment:
+      # Le indica qué contenedor Nginx debe gestionar.
       - NGINX_PROXY_CONTAINER=nginx-proxy
+      # Email de contacto para Let's Encrypt.
       - DEFAULT_EMAIL=carmengarcianavarro19@gmail.com
+    # Volúmenes compartidos con nginx-proxy para certificados y config.
     volumes:
+      # Socket Docker para detectar contenedores con LETSENCRYPT_HOST.
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Mismo volumen de certificados que usa nginx-proxy.
       - certs:/etc/nginx/certs
+      # Mismo volumen de configuraciones de virtual host.
       - vhost:/etc/nginx/vhost.d
+      # Mismo volumen html para el challenge ACME.
       - html:/usr/share/nginx/html
+      # Estado interno de acme.sh (cliente de certificados).
       - acme:/etc/acme.sh
+    # Asegura que nginx-proxy esté arrancado antes de este servicio.
     depends_on:
       - nginx-proxy
+    # Red pública para comunicarse con el proxy.
     networks:
       - red-internet
+    # Reinicio automático.
     restart: always
 
   # --- GESTIÓN ---
+  # Interfaz web para gestionar contenedores Docker desde navegador.
   portainer:
+    # Imagen estable de Portainer Community Edition.
     image: portainer/portainer-ce:latest
+    # Nombre fijo del contenedor.
     container_name: portainer
+    # Reinicio automático.
     restart: always
+    # Variables que usa nginx-proxy para publicar Portainer por dominio HTTPS.
     environment:
+      # Dominio público de Portainer.
       - VIRTUAL_HOST=portainer.mcarmen.servidorgp.somosdelprieto.com
+      # Puerto interno del contenedor donde escucha Portainer.
       - VIRTUAL_PORT=9000
+      # Dominio para certificado Let's Encrypt.
       - LETSENCRYPT_HOST=portainer.mcarmen.servidorgp.somosdelprieto.com
+    # Volúmenes para acceso Docker y persistencia de datos de Portainer.
     volumes:
+      # Permite a Portainer administrar el Docker del host.
       - /var/run/docker.sock:/var/run/docker.sock
+      # Guarda usuarios, endpoints y configuración de Portainer.
       - portainer_data:/data
+    # Está en red pública (acceso web) y red privada (comunicación interna si hace falta).
     networks:
       - red-internet
       - red-interna
 
   # --- MONITORIZACIÓN ---
+  # Recolector de métricas y series temporales.
   prometheus:
+    # Imagen oficial de Prometheus.
     image: prom/prometheus
+    # Nombre fijo del contenedor.
     container_name: prometheus
+    # Reinicio automático.
     restart: always
+    # Monta la configuración y persiste la base de series temporales.
     volumes:
+      # Archivo de configuración de scraping.
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      # Datos persistentes de Prometheus.
       - prometheus_data:/prometheus
+    # Variables para exposición web por nginx-proxy.
     environment:
+      # Dominio público de Prometheus.
       - VIRTUAL_HOST=prometheus.mcarmen.servidorgp.somosdelprieto.com
+      # Puerto interno de Prometheus.
       - VIRTUAL_PORT=9090
+      # Dominio para certificado TLS.
       - LETSENCRYPT_HOST=prometheus.mcarmen.servidorgp.somosdelprieto.com
+    # Red pública para interfaz web y privada para scrappear servicios internos.
     networks:
       - red-internet
       - red-interna
 
+  # Exportador de métricas del sistema operativo del host (CPU, RAM, disco, etc.).
   node-exporter:
+    # Imagen oficial de Node Exporter.
     image: prom/node-exporter:latest
+    # Nombre fijo del contenedor.
     container_name: node-exporter
+    # Reinicio automático.
     restart: always
+    # Montajes del sistema host en solo lectura para extraer métricas.
     volumes:
+      # Información de procesos.
       - /proc:/host/proc:ro
+      # Información del kernel y sistema.
       - /sys:/host/sys:ro
+      # Sistema de ficheros raíz del host.
       - /:/rootfs:ro
+    # Parámetros para decirle al exporter dónde están los paths montados.
     command:
+      # Path de procfs dentro del contenedor.
       - '--path.procfs=/host/proc'
+      # Path de rootfs dentro del contenedor.
       - '--path.rootfs=/rootfs'
+      # Path de sysfs dentro del contenedor.
       - '--path.sysfs=/host/sys'
+      # Evita montar/leer rutas que no interesan para métricas de filesystem.
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    # Solo red interna: no debe exponerse públicamente.
     networks:
       - red-interna
 
+  # Dashboard visual de métricas (consume Prometheus como datasource).
   grafana:
+    # Imagen oficial de Grafana.
     image: grafana/grafana
+    # Nombre fijo del contenedor.
     container_name: grafana
+    # Reinicio automático.
     restart: always
+    # Volumen persistente de configuración/dashboards de Grafana.
     volumes:
       - grafana_data:/var/lib/grafana
+    # Variables para publicación por dominio con TLS automático.
     environment:
+      # Dominio público de Grafana.
       - VIRTUAL_HOST=grafana.mcarmen.servidorgp.somosdelprieto.com
+      # Puerto interno donde escucha Grafana.
       - VIRTUAL_PORT=3000
+      # Dominio para certificado TLS.
       - LETSENCRYPT_HOST=grafana.mcarmen.servidorgp.somosdelprieto.com
+    # Red pública para UI web + red interna para conectar con Prometheus/node-exporter.
     networks:
       - red-internet
       - red-interna
 
+# Redes declaradas a nivel global del compose.
 networks:
+  # Red pública ya existente en Docker (no se crea aquí).
   red-internet:
+    # external:true indica que la red existe fuera de este compose.
     external: true
+  # Red privada ya existente para servicios internos.
   red-interna:
+    # external:true evita recrearla y mantiene aislamiento.
     external: true
 
+# Volúmenes nombrados para persistencia de datos y certificados.
 volumes:
+  # Persistencia de datos/config de Portainer.
   portainer_data:
+  # Persistencia de datos de Grafana.
   grafana_data:
+  # Persistencia de series de Prometheus.
   prometheus_data:
+  # Certificados TLS compartidos entre proxy y companion.
   certs:
+  # Configuraciones de virtual hosts de Nginx.
   vhost:
+  # Carpeta web compartida para desafíos ACME.
   html:
+  # Estado interno de acme.sh.
   acme:

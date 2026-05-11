@@ -4,14 +4,21 @@ services:
     image: postgres:15
     container_name: prieto-eats-db
     restart: always
+    ports:
+      - 5000:80
     environment:
       POSTGRES_DB: prieto_eats
       POSTGRES_USER: m_carmen
       POSTGRES_PASSWORD: prieto_eats_mcarmen
+      - VIRTUAL_HOST=bbdd.mcarmen.servidorgp.somosdelprieto.com
+      - LETSENCRYPT_HOST=bbdd.mcarmen.servidorgp.somosdelprieto.com
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
-      - red-interna
+      red-internet:
+        external: true
+      red-interna:
+        external: true
 
   # --- APLICACIÓN ---
   app:
