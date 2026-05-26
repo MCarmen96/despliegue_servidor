@@ -13,54 +13,14 @@ services:
       - "80:80"
       # HTTPS público.
       - "443:443"
-    # Volúmenes para certificados, configuraciones virtual-host y acceso al socket Docker.
+    # Volúmenes para acceso al socket Docker.
     volumes:
       # Socket Docker en solo lectura: permite descubrir contenedores dinámicamente.
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      # Certificados TLS generados por Let's Encrypt.
-      - certs:/etc/nginx/certs:ro
-      # Plantillas/config de virtual hosts.
-      - vhost:/etc/nginx/vhost.d
-      # Carpeta usada por el companion para desafíos ACME.
-      - html:/usr/share/nginx/html
     # Red pública donde viven los servicios expuestos a Internet.
     networks:
       - red-internet
     # Reinicia siempre ante caída o reinicio del host.
-    restart: always
-
-  # --- SSL AUTOMÁTICO ---
-  # Este servicio solicita y renueva certificados Let's Encrypt para dominios detectados.
-  letsencrypt-companion:
-    # Companion oficial para jwilder/nginx-proxy.
-    image: jrcs/letsencrypt-nginx-proxy-companion
-    # Nombre fijo para facilitar administración y logs.
-    container_name: letsencrypt-companion
-    # Variables de entorno necesarias para asociar companion con nginx-proxy.
-    environment:
-      # Le indica qué contenedor Nginx debe gestionar.
-      - NGINX_PROXY_CONTAINER=nginx-proxy
-      # Email de contacto para Let's Encrypt.
-      - DEFAULT_EMAIL=carmengarcianavarro19@gmail.com
-    # Volúmenes compartidos con nginx-proxy para certificados y config.
-    volumes:
-      # Socket Docker para detectar contenedores con LETSENCRYPT_HOST.
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      # Mismo volumen de certificados que usa nginx-proxy.
-      - certs:/etc/nginx/certs
-      # Mismo volumen de configuraciones de virtual host.
-      - vhost:/etc/nginx/vhost.d
-      # Mismo volumen html para el challenge ACME.
-      - html:/usr/share/nginx/html
-      # Estado interno de acme.sh (cliente de certificados).
-      - acme:/etc/acme.sh
-    # Asegura que nginx-proxy esté arrancado antes de este servicio.
-    depends_on:
-      - nginx-proxy
-    # Red pública para comunicarse con el proxy.
-    networks:
-      - red-internet
-    # Reinicio automático.
     restart: always
 
   # --- GESTIÓN ---
@@ -75,11 +35,10 @@ services:
     # Variables que usa nginx-proxy para publicar Portainer por dominio HTTPS.
     environment:
       # Dominio público de Portainer.
-      - VIRTUAL_HOST=portainer.mcarmen.servidorgp.somosdelprieto.com
+      - VIRTUAL_HOST=portainer-mcarmen.servidorgp.somosdelprieto.com
       # Puerto interno del contenedor donde escucha Portainer.
       - VIRTUAL_PORT=9000
-      # Dominio para certificado Let's Encrypt.
-      - LETSENCRYPT_HOST=portainer.mcarmen.servidorgp.somosdelprieto.com
+
     # Volúmenes para acceso Docker y persistencia de datos de Portainer.
     volumes:
       # Permite a Portainer administrar el Docker del host.
@@ -109,11 +68,9 @@ services:
     # Variables para exposición web por nginx-proxy.
     environment:
       # Dominio público de Prometheus.
-      - VIRTUAL_HOST=prometheus.mcarmen.servidorgp.somosdelprieto.com
+      - VIRTUAL_HOST=prometheus-mcarmen.servidorgp.somosdelprieto.com
       # Puerto interno de Prometheus.
       - VIRTUAL_PORT=9090
-      # Dominio para certificado TLS.
-      - LETSENCRYPT_HOST=prometheus.mcarmen.servidorgp.somosdelprieto.com
     # Red pública para interfaz web y privada para scrappear servicios internos.
     networks:
       - red-internet
@@ -163,11 +120,10 @@ services:
     # Variables para publicación por dominio con TLS automático.
     environment:
       # Dominio público de Grafana.
-      - VIRTUAL_HOST=grafana.mcarmen.servidorgp.somosdelprieto.com
+      - VIRTUAL_HOST=grafana-mcarmen.servidorgp.somosdelprieto.com
       # Puerto interno donde escucha Grafana.
       - VIRTUAL_PORT=3000
-      # Dominio para certificado TLS.
-      - LETSENCRYPT_HOST=grafana.mcarmen.servidorgp.somosdelprieto.com
+    
     # Red pública para UI web + red interna para conectar con Prometheus/node-exporter.
     networks:
       - red-internet
@@ -192,11 +148,3 @@ volumes:
   grafana_data:
   # Persistencia de series de Prometheus.
   prometheus_data:
-  # Certificados TLS compartidos entre proxy y companion.
-  certs:
-  # Configuraciones de virtual hosts de Nginx.
-  vhost:
-  # Carpeta web compartida para desafíos ACME.
-  html:
-  # Estado interno de acme.sh.
-  acme:
